@@ -6,6 +6,8 @@ public static class DependencyInjection
     {
         services.AddScoped<CreateBookmark>();
 
+        services.AddScoped<GetBookmarks>();
+
         return services;
     }
 }
