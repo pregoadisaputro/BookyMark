@@ -55,6 +55,12 @@ public sealed class CreateBookmark(
         db.Bookmarks.Add(newBookmark);
         await db.SaveChangesAsync(ct);
 
+        logger.LogInformation(
+            "Created bookmark, Title: {BookmarkTitle} & ID: {BookmarkId}",
+            newBookmark.Title,
+            newBookmark.Id
+        );
+
         return Result<CreateBookmarkResponse>.Success(new CreateBookmarkResponse(newBookmark.Id));
     }
 }
