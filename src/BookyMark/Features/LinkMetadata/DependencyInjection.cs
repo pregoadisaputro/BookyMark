@@ -6,7 +6,8 @@ public static class DependencyInjection
     {
         services.AddHttpClient<LinkMetadataService>(client =>
         {
-            client.BaseAddress = new Uri("https://api.linkmetadata.com");
+            client.BaseAddress = new Uri("https://api.linkmetadata.com/");
+            client.Timeout = TimeSpan.FromSeconds(8);
         });
 
         return services;
