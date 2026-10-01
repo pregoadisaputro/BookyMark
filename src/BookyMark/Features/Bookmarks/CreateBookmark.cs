@@ -21,19 +21,6 @@ public sealed class CreateBookmark(
         CancellationToken ct = default
     )
     {
-        if (string.IsNullOrWhiteSpace(request.Title) || string.IsNullOrWhiteSpace(request.Url))
-        {
-            logger.LogWarning(
-                "Title or URL cannot be empty, Title: {Title} & URL: {Url}",
-                request.Title,
-                request.Url
-            );
-
-            return Result<CreateBookmarkResponse>.Failure(
-                "Title or URL cannot be empty or whitespace."
-            );
-        }
-
         var metadata = await metadataService.GetAsync(request.Url, ct);
 
         if (metadata is null)
@@ -46,10 +33,10 @@ public sealed class CreateBookmark(
 
         var newBookmark = new Bookmark
         {
-            Title = metadata?.Title ?? request.Title,
-            Url = metadata?.Url ?? request.Url,
-            ImageUrl = metadata?.Image?.Url ?? string.Empty,
-            FaviconUrl = metadata?.Favicon?.Url ?? string.Empty,
+            Title = metadata.Title ?? request.Title,
+            Url = request.Url,
+            ImageUrl = metadata.Image?.Url,
+            FaviconUrl = metadata.Favicon?.Url,
         };
 
         db.Bookmarks.Add(newBookmark);
