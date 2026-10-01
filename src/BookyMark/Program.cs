@@ -1,5 +1,6 @@
 using BookyMark.Components;
 using BookyMark.Data;
+using BookyMark.Features.Bookmarks;
 using BookyMark.Features.LinkMetadata;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -8,6 +9,7 @@ builder.Services.AddRazorComponents().AddInteractiveServerComponents();
 
 builder.Services.AddDatabase(builder.Configuration);
 builder.Services.AddLinkMetadataService();
+builder.Services.AddBookmakrsFeature();
 
 var app = builder.Build();
 
