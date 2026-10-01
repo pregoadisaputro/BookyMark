@@ -11,11 +11,13 @@ public sealed record ImageMetadata(string? Url);
 
 public sealed class LinkMetadataService(HttpClient client, ILogger<LinkMetadataService> logger)
 {
+    private const string UrlPath = "v1/metadata?url=";
+
     public async Task<LinkMetadataResponse?> GetAsync(string url, CancellationToken ct = default)
     {
         if (
             !Uri.TryCreate(url, UriKind.Absolute, out var uri)
-            || (uri.Scheme != Uri.UriSchemeHttp) && (uri.Scheme != Uri.UriSchemeHttps)
+            || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
         )
         {
             logger.LogWarning("Invalid URL for {Url}", url);
@@ -23,7 +25,7 @@ public sealed class LinkMetadataService(HttpClient client, ILogger<LinkMetadataS
         }
 
         var response = await client.GetFromJsonAsync<LinkMetadataResponse>(
-            $"/v1/metadata?url={Uri.EscapeDataString(url)}",
+            $"{UrlPath}{Uri.EscapeDataString(url)}",
             ct
         );
 
