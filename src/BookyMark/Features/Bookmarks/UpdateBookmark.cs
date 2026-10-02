@@ -26,44 +26,66 @@ public sealed class UpdateBookmark(
     {
         await using var db = await dbCtxFactory.CreateDbContextAsync(ct);
 
-        var existingBookmark = await db.Bookmarks.FindAsync([id], ct);
+        var bookmark = await db.Bookmarks.FindAsync([id], ct);
 
-        if (existingBookmark is null)
+        if (bookmark is null)
         {
             logger.LogWarning("Bookmark is null, ID: {BookmarkId}", id);
             return Result.Failure("Bookmark was not found or empty.");
         }
 
-        if (!string.IsNullOrWhiteSpace(request.Url))
+        var cleanedUrl = request.Url?.Trim();
+
+        if (!string.IsNullOrWhiteSpace(cleanedUrl) && bookmark.Url != cleanedUrl)
         {
-            var isChanged = existingBookmark.Url != request.Url;
+            var existingUrl = await db.Bookmarks.AnyAsync(
+                b => b.Url == cleanedUrl && b.Id != id,
+                ct
+            );
 
-            if (isChanged)
+            if (existingUrl)
             {
-                var metadata = await metadataService.GetAsync(request.Url, ct);
-
-                existingBookmark.Title = metadata?.Title ?? existingBookmark.Title;
-                existingBookmark.Url = request.Url;
-                existingBookmark.ImageUrl = metadata?.Image?.Url;
-                existingBookmark.FaviconUrl = metadata?.Favicon?.Url;
+                logger.LogWarning("Bookmark URL already exists, URL: {BookmarkUrl}", cleanedUrl);
+                return Result.Failure("Bookmark URL already exists.");
             }
+
+            var metadataResult = await metadataService.GetAsync(cleanedUrl, ct);
+
+            if (!metadataResult.IsSuccess)
+            {
+                return Result.Failure(metadataResult.Error);
+            }
+
+            var metadata = metadataResult.Value;
+
+            var title = !string.IsNullOrWhiteSpace(metadata?.Title)
+                ? metadata.Title
+                : bookmark.Title;
+
+            bookmark.Title = title;
+            bookmark.Url = cleanedUrl;
+            bookmark.ImageUrl = metadata?.Image?.Url;
+            bookmark.FaviconUrl = metadata?.Favicon?.Url;
         }
 
         if (request.CollectionId is not null)
         {
-            var collection = await db.Collections.FindAsync([request.CollectionId], ct);
+            var collectionExists = await db.Collections.AnyAsync(
+                c => c.Id == request.CollectionId,
+                ct
+            );
 
-            if (collection is null)
+            if (!collectionExists)
             {
                 logger.LogWarning("Collection is null, ID: {CollectionId}", request.CollectionId);
                 return Result.Failure("Collection was not found or empty.");
             }
         }
 
-        existingBookmark.Notes = request.Notes;
-        existingBookmark.Favorite = request.Favorite;
-        existingBookmark.CollectionId = request.CollectionId;
-        existingBookmark.UpdatedAt = DateTimeOffset.UtcNow;
+        bookmark.Notes = request.Notes;
+        bookmark.Favorite = request.Favorite;
+        bookmark.CollectionId = request.CollectionId;
+        bookmark.UpdatedAt = DateTimeOffset.UtcNow;
 
         await db.SaveChangesAsync(ct);
 
