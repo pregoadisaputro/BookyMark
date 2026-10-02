@@ -55,8 +55,8 @@ public sealed class CreateBookmark(
         {
             Title = title.Trim(),
             Url = url,
-            ImageUrl = metadata?.Image?.Url,
-            FaviconUrl = metadata?.Favicon?.Url,
+            ImageUrl = metadata?.ImageUrl?.Url,
+            FaviconUrl = metadata?.FaviconUrl?.Url,
         };
 
         db.Bookmarks.Add(newBookmark);

@@ -64,8 +64,8 @@ public sealed class UpdateBookmark(
 
             bookmark.Title = title;
             bookmark.Url = cleanedUrl;
-            bookmark.ImageUrl = metadata?.Image?.Url;
-            bookmark.FaviconUrl = metadata?.Favicon?.Url;
+            bookmark.ImageUrl = metadata?.ImageUrl?.Url;
+            bookmark.FaviconUrl = metadata?.FaviconUrl?.Url;
         }
 
         if (request.CollectionId is not null)

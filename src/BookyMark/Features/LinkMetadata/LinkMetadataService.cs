@@ -6,8 +6,8 @@ namespace BookyMark.Features.LinkMetadata;
 public sealed record LinkMetadataResponse(
     string? Title,
     string? Url,
-    ImageMetadata? Image,
-    ImageMetadata? Favicon
+    ImageMetadata? ImageUrl,
+    ImageMetadata? FaviconUrl
 );
 
 public sealed record ImageMetadata(string? Url);
