@@ -19,7 +19,9 @@ public sealed class CreateCollection(
         CancellationToken ct = default
     )
     {
-        if (string.IsNullOrWhiteSpace(request.Name))
+        var cleanedName = request.Name?.Trim();
+
+        if (string.IsNullOrWhiteSpace(cleanedName))
         {
             logger.LogWarning("Name cannot be empty or whitespace.");
             return Result<CreateCollectionResponse>.Failure("Name cannot be empty or whitespace.");
@@ -27,10 +29,25 @@ public sealed class CreateCollection(
 
         await using var db = await dbCtxFactory.CreateDbContextAsync(ct);
 
+        var loweredName = cleanedName.ToLower();
+
+        var existingName = await db.Collections.AnyAsync(c => c.Name.ToLower() == loweredName, ct);
+
+        if (existingName)
+        {
+            logger.LogWarning(
+                "Collection Name already exists, Name: {CollectionName}",
+                cleanedName
+            );
+            return Result<CreateCollectionResponse>.Failure("Collection Name already exists.");
+        }
+
+        var cleanedDescription = request.Description?.Trim();
+
         var newCollection = new Collection
         {
-            Name = request.Name,
-            Description = request.Description,
+            Name = cleanedName,
+            Description = string.IsNullOrWhiteSpace(cleanedDescription) ? null : cleanedDescription,
         };
 
         db.Collections.Add(newCollection);
