@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace BookyMark.Features.LinkMetadata;
 
 public sealed record LinkMetadataResponse(
@@ -24,11 +26,20 @@ public sealed class LinkMetadataService(HttpClient client, ILogger<LinkMetadataS
             throw new ArgumentException("URL must be a valid HTTP or HTTPS.", nameof(url));
         }
 
-        var response = await client.GetFromJsonAsync<LinkMetadataResponse>(
-            $"{UrlPath}{Uri.EscapeDataString(url)}",
-            ct
-        );
-
-        return response;
+        try
+        {
+            return await client.GetFromJsonAsync<LinkMetadataResponse>(
+                $"{UrlPath}{Uri.EscapeDataString(url)}",
+                ct
+            );
+        }
+        catch (Exception ex)
+            when (ex is HttpRequestException or JsonException
+                || (ex is TaskCanceledException && !ct.IsCancellationRequested)
+            )
+        {
+            logger.LogWarning(ex, "Metadata lookup failed for {Url}", url);
+            return null;
+        }
     }
 }
