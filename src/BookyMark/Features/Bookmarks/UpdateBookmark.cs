@@ -51,7 +51,7 @@ public sealed class UpdateBookmark(
 
             var metadataResult = await metadataService.GetAsync(cleanedUrl, ct);
 
-            if (!metadataResult.IsSuccess)
+            if (metadataResult.IsFailure)
             {
                 return Result.Failure(metadataResult.Error);
             }

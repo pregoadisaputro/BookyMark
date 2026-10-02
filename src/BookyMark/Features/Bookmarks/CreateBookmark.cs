@@ -35,7 +35,7 @@ public sealed class CreateBookmark(
 
         var metadataResult = await metadataService.GetAsync(url, ct);
 
-        if (!metadataResult.IsSuccess)
+        if (metadataResult.IsFailure)
         {
             return Result<CreateBookmarkResponse>.Failure(metadataResult.Error);
         }

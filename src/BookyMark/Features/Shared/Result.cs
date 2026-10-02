@@ -3,6 +3,7 @@ namespace BookyMark.Features.Shared;
 public class Result
 {
     public bool IsSuccess { get; }
+    public bool IsFailure => !IsSuccess;
     public string Error { get; }
 
     protected Result(bool isSuccess, string? error)
