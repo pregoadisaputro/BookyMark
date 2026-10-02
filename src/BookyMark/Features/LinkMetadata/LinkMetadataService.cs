@@ -1,4 +1,5 @@
 using System.Text.Json;
+using BookyMark.Features.Shared;
 
 namespace BookyMark.Features.LinkMetadata;
 
@@ -15,31 +16,41 @@ public sealed class LinkMetadataService(HttpClient client, ILogger<LinkMetadataS
 {
     private const string UrlPath = "v1/metadata?url=";
 
-    public async Task<LinkMetadataResponse?> GetAsync(string url, CancellationToken ct = default)
+    public async Task<Result<LinkMetadataResponse?>> GetAsync(
+        string url,
+        CancellationToken ct = default
+    )
     {
+        var cleanedUrl = url.Trim();
+
         if (
-            !Uri.TryCreate(url, UriKind.Absolute, out var uri)
+            string.IsNullOrWhiteSpace(cleanedUrl)
+            || !Uri.TryCreate(cleanedUrl, UriKind.Absolute, out var uri)
             || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
         )
         {
-            logger.LogWarning("Invalid URL for {Url}", url);
-            throw new ArgumentException("URL must be a valid HTTP or HTTPS.", nameof(url));
+            logger.LogWarning("Invalid URL for {Url}", cleanedUrl);
+            return Result<LinkMetadataResponse?>.Failure(
+                "URL must be a valid HTTP or HTTPS address"
+            );
         }
 
         try
         {
-            return await client.GetFromJsonAsync<LinkMetadataResponse>(
-                $"{UrlPath}{Uri.EscapeDataString(url)}",
+            var response = await client.GetFromJsonAsync<LinkMetadataResponse>(
+                $"{UrlPath}{Uri.EscapeDataString(cleanedUrl)}",
                 ct
             );
+
+            return Result<LinkMetadataResponse?>.Success(response);
         }
         catch (Exception ex)
             when (ex is HttpRequestException or JsonException
                 || (ex is TaskCanceledException && !ct.IsCancellationRequested)
             )
         {
-            logger.LogWarning(ex, "Metadata lookup failed for {Url}", url);
-            return null;
+            logger.LogWarning(ex, "Metadata lookup failed for {Url}", cleanedUrl);
+            return Result<LinkMetadataResponse?>.Success(null);
         }
     }
 }
