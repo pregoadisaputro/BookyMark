@@ -26,12 +26,12 @@ public sealed class UpdateBookmark(
     {
         await using var db = await dbCtxFactory.CreateDbContextAsync(ct);
 
-        var existingBookmark = await db.Bookmarks.FirstOrDefaultAsync(b => b.Id == id, ct);
+        var existingBookmark = await db.Bookmarks.FindAsync([id], ct);
 
         if (existingBookmark is null)
         {
             logger.LogWarning("Bookmark is null, ID: {BookmarkId}", id);
-            return Result.Failure("Bookmark is not found or empty.");
+            return Result.Failure("Bookmark was not found or empty.");
         }
 
         if (!string.IsNullOrWhiteSpace(request.Url))
@@ -46,6 +46,19 @@ public sealed class UpdateBookmark(
                 existingBookmark.Url = request.Url;
                 existingBookmark.ImageUrl = metadata?.Image?.Url;
                 existingBookmark.FaviconUrl = metadata?.Favicon?.Url;
+            }
+        }
+
+        if (request.CollectionId is not null)
+        {
+            var collection = await db.Collections.FindAsync([request.CollectionId], ct);
+
+            if (collection is null)
+            {
+                logger.LogWarning("Collection is null, ID: {CollectionId}", request.CollectionId);
+                return Result<GetBookmarkDetailsResponse>.Failure(
+                    "Collection was not found or empty."
+                );
             }
         }
 

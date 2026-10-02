@@ -21,7 +21,7 @@ public sealed record GetBookmarksRequest(
 public sealed record GetBookmarksResponse(
     int Id,
     string Title,
-    bool? Favorite,
+    bool Favorite,
     string? Image,
     string? Favicon,
     DateTimeOffset CreatedAt,
