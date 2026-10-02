@@ -30,7 +30,23 @@ public sealed class GetBookmarkDetails(
     {
         await using var db = await dbCtxFactory.CreateDbContextAsync(ct);
 
-        var bookmark = await db.Bookmarks.AsNoTracking().FirstOrDefaultAsync(b => b.Id == id, ct);
+        var bookmark = await db
+            .Bookmarks.AsNoTracking()
+            .Where(b => b.Id == id)
+            .Select(b => new GetBookmarkDetailsResponse(
+                b.Id,
+                b.Title,
+                b.Url,
+                b.Notes,
+                b.Favorite,
+                b.ImageUrl,
+                b.FaviconUrl,
+                b.CreatedAt,
+                b.UpdatedAt,
+                b.CollectionId,
+                b.Collection != null ? b.Collection.Name : null
+            ))
+            .FirstOrDefaultAsync(ct);
 
         if (bookmark is null)
         {
@@ -40,20 +56,6 @@ public sealed class GetBookmarkDetails(
 
         logger.LogInformation("Getting bookmark, ID: {BookmarkId}", id);
 
-        return Result<GetBookmarkDetailsResponse>.Success(
-            new GetBookmarkDetailsResponse(
-                bookmark.Id,
-                bookmark.Title,
-                bookmark.Url,
-                bookmark.Notes,
-                bookmark.Favorite,
-                bookmark.ImageUrl,
-                bookmark.FaviconUrl,
-                bookmark.CreatedAt,
-                bookmark.UpdatedAt,
-                bookmark.CollectionId,
-                bookmark.Collection != null ? bookmark.Collection.Name : null
-            )
-        );
+        return Result<GetBookmarkDetailsResponse>.Success(bookmark);
     }
 }
