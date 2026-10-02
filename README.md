@@ -22,6 +22,7 @@ im making these just to drop a link that i discover that im interested in but so
 - Blazor (.NET 10)
 - SQLite (using EF Core)
 - LinkMetadata API [LinkMetadata](https://linkmetadata.com/)
+	- (Rate limit: 20 requests per 10 seconds per IP address)
 - TailwindCSS
 
 ## if you want to use it
