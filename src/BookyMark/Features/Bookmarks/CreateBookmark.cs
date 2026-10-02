@@ -21,9 +21,11 @@ public sealed class CreateBookmark(
         CancellationToken ct = default
     )
     {
+        var url = request.Url?.Trim();
+
         if (
-            string.IsNullOrWhiteSpace(request.Url)
-            || !Uri.TryCreate(request.Url, UriKind.Absolute, out var uri)
+            string.IsNullOrWhiteSpace(url)
+            || !Uri.TryCreate(url, UriKind.Absolute, out var uri)
             || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
         )
         {
@@ -34,17 +36,15 @@ public sealed class CreateBookmark(
 
         await using var db = await dbCtxFactory.CreateDbContextAsync(ct);
 
-        var existingBookmarkUrl = await db
-            .Bookmarks.AsNoTracking()
-            .AnyAsync(b => EF.Functions.Like(b.Url, request.Url), ct);
+        var existingBookmarkUrl = await db.Bookmarks.AnyAsync(b => b.Url == url, ct);
 
         if (existingBookmarkUrl)
         {
-            logger.LogWarning("Bookmark URL already exist, URL: {BookmarkUrl}", request.Url);
-            return Result<CreateBookmarkResponse>.Failure("Bookmark URL already exist.");
+            logger.LogWarning("Bookmark URL already exists, URL: {BookmarkUrl}", url);
+            return Result<CreateBookmarkResponse>.Failure("Bookmark URL already exists.");
         }
 
-        var metadata = await metadataService.GetAsync(request.Url, ct);
+        var metadata = await metadataService.GetAsync(url, ct);
 
         var title = !string.IsNullOrWhiteSpace(metadata?.Title) ? metadata.Title : request.Title;
 
@@ -60,7 +60,7 @@ public sealed class CreateBookmark(
         var newBookmark = new Bookmark
         {
             Title = cleanedName,
-            Url = request.Url,
+            Url = url,
             ImageUrl = metadata?.Image?.Url,
             FaviconUrl = metadata?.Favicon?.Url,
         };
