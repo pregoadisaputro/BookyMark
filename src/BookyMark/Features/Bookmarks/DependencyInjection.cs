@@ -8,6 +8,7 @@ public static class DependencyInjection
         services.AddScoped<UpdateBookmark>();
 
         services.AddScoped<GetBookmarks>();
+        services.AddScoped<GetBookmarkDetails>();
 
         return services;
     }
