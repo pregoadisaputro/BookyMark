@@ -39,7 +39,7 @@ public sealed class UpdateBookmark(
         if (!string.IsNullOrWhiteSpace(cleanedUrl) && bookmark.Url != cleanedUrl)
         {
             var existingUrl = await db.Bookmarks.AnyAsync(
-                b => b.Url == cleanedUrl && b.Id != id,
+                b => b.Id != id && b.Url == cleanedUrl,
                 ct
             );
 
@@ -88,6 +88,8 @@ public sealed class UpdateBookmark(
         bookmark.UpdatedAt = DateTimeOffset.UtcNow;
 
         await db.SaveChangesAsync(ct);
+
+        logger.LogInformation("Updated Bookmark, ID: {BookmarkId}", id);
 
         return Result.Success();
     }
