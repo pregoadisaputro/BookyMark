@@ -21,22 +21,48 @@ public sealed class CreateBookmark(
         CancellationToken ct = default
     )
     {
-        var metadata = await metadataService.GetAsync(request.Url, ct);
-
-        if (metadata is null)
+        if (
+            string.IsNullOrWhiteSpace(request.Url)
+            || !Uri.TryCreate(request.Url, UriKind.Absolute, out var uri)
+            || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
+        )
         {
-            logger.LogWarning("Metadata response is null {Metadata}", metadata);
-            return Result<CreateBookmarkResponse>.Failure("Metadata response is empty or null");
+            return Result<CreateBookmarkResponse>.Failure(
+                "URL must be a valid HTTP or HTTPS address."
+            );
         }
 
         await using var db = await dbCtxFactory.CreateDbContextAsync(ct);
 
+        var existingBookmarkUrl = await db
+            .Bookmarks.AsNoTracking()
+            .AnyAsync(b => EF.Functions.Like(b.Url, request.Url), ct);
+
+        if (existingBookmarkUrl)
+        {
+            logger.LogWarning("Bookmark URL already exist, URL: {BookmarkUrl}", request.Url);
+            return Result<CreateBookmarkResponse>.Failure("Bookmark URL already exist.");
+        }
+
+        var metadata = await metadataService.GetAsync(request.Url, ct);
+
+        var title = !string.IsNullOrWhiteSpace(metadata?.Title) ? metadata.Title : request.Title;
+
+        if (string.IsNullOrWhiteSpace(title))
+        {
+            return Result<CreateBookmarkResponse>.Failure(
+                "Title is required when metadata is unavailable."
+            );
+        }
+
+        var cleanedName = title.Trim();
+
         var newBookmark = new Bookmark
         {
-            Title = metadata.Title ?? request.Title,
+            Title = cleanedName,
             Url = request.Url,
-            ImageUrl = metadata.Image?.Url,
-            FaviconUrl = metadata.Favicon?.Url,
+            ImageUrl = metadata?.Image?.Url,
+            FaviconUrl = metadata?.Favicon?.Url,
         };
 
         db.Bookmarks.Add(newBookmark);
