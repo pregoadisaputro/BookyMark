@@ -56,15 +56,14 @@ public sealed class UpdateBookmark(
             if (collection is null)
             {
                 logger.LogWarning("Collection is null, ID: {CollectionId}", request.CollectionId);
-                return Result<GetBookmarkDetailsResponse>.Failure(
-                    "Collection was not found or empty."
-                );
+                return Result.Failure("Collection was not found or empty.");
             }
         }
 
         existingBookmark.Notes = request.Notes;
         existingBookmark.Favorite = request.Favorite;
         existingBookmark.CollectionId = request.CollectionId;
+        existingBookmark.UpdatedAt = DateTimeOffset.UtcNow;
 
         await db.SaveChangesAsync(ct);
 
