@@ -21,18 +21,7 @@ public sealed class CreateBookmark(
         CancellationToken ct = default
     )
     {
-        var url = request.Url?.Trim();
-
-        if (
-            string.IsNullOrWhiteSpace(url)
-            || !Uri.TryCreate(url, UriKind.Absolute, out var uri)
-            || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
-        )
-        {
-            return Result<CreateBookmarkResponse>.Failure(
-                "URL must be a valid HTTP or HTTPS address."
-            );
-        }
+        var url = request.Url?.Trim() ?? string.Empty;
 
         await using var db = await dbCtxFactory.CreateDbContextAsync(ct);
 
@@ -44,7 +33,14 @@ public sealed class CreateBookmark(
             return Result<CreateBookmarkResponse>.Failure("Bookmark URL already exists.");
         }
 
-        var metadata = await metadataService.GetAsync(url, ct);
+        var metadataResult = await metadataService.GetAsync(url, ct);
+
+        if (!metadataResult.IsSuccess)
+        {
+            return Result<CreateBookmarkResponse>.Failure(metadataResult.Error);
+        }
+
+        var metadata = metadataResult.Value;
 
         var title = !string.IsNullOrWhiteSpace(metadata?.Title) ? metadata.Title : request.Title;
 
@@ -55,11 +51,9 @@ public sealed class CreateBookmark(
             );
         }
 
-        var cleanedName = title.Trim();
-
         var newBookmark = new Bookmark
         {
-            Title = cleanedName,
+            Title = title.Trim(),
             Url = url,
             ImageUrl = metadata?.Image?.Url,
             FaviconUrl = metadata?.Favicon?.Url,
@@ -69,8 +63,9 @@ public sealed class CreateBookmark(
         await db.SaveChangesAsync(ct);
 
         logger.LogInformation(
-            "Created bookmark, Title: {BookmarkTitle} & ID: {BookmarkId}",
+            "Created bookmark, Title: {BookmarkTitle}, URL: {BookmarkUrl} & ID: {BookmarkId}",
             newBookmark.Title,
+            newBookmark.Url,
             newBookmark.Id
         );
 
